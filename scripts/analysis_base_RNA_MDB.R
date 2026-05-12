@@ -6,7 +6,7 @@
 #######################################
 # Check if the required packages are installed - if not, install them
 
-req_packages <- c("Seurat","ggplot2","harmony")
+req_packages <- c("Seurat","ggplot2","harmony","openxlsx")
 
 my_packages <- installed.packages()[, "Package"] #list installed packages
 for (pkg in req_packages) {
@@ -19,14 +19,26 @@ for (pkg in req_packages) {
 library(Seurat)
 library(ggplot2)
 library(harmony)
+library(readxl)
+library(openxlsx)
 set.seed(1234)
 
 #######################################
 # load in the preprocessed data
 #######################################
-load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined.RData")
+# load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined.RData")
 
+# have a look at the seurat object
 seurat_obj_merged_joined
+
+# ?save()
+
+# save the seurat object to a different file and then continue to use the new file
+# save(seurat_obj_merged_joined, file ="/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_copy_analysis.RData")
+
+# load in the copy of preprocessed data, this will be overwritten further in the analysis
+load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_copy_analysis.RData")
+
 # table(seurat_obj_merged_joined$orig.ident) #cell counts?
 # head(seurat_obj_merged_joined[[]], 2)
 # seurat_obj_merged_joined@
@@ -36,6 +48,14 @@ seurat_obj_merged_joined
 # seurat_obj_merged_joined@assays
 # Assays(seurat_obj_merged_joined)
 VariableFeatures(seurat_obj_merged_joined)[1:20]
+DefaultAssay(seurat_obj_merged_joined)
+
+# create patient column with patient id, extracted from orig.ident
+# seurat_obj_merged_joined@meta.data$patient <- sub(".*-(Patient[0-9]+).*", "\\1", seurat_obj_merged_joined@meta.data$orig.ident)
+
+#######################################
+# QC => scripts/qc_RNA_MDB.R
+#######################################
 
 #######################################
 # PCA
@@ -43,10 +63,17 @@ VariableFeatures(seurat_obj_merged_joined)[1:20]
 
 # ?RunPCA
 # Check size of seurat object
-object.size(seurat_obj_merged_joined)
+# object.size(seurat_obj_merged_joined)
 
 # Run PCA (linear dimensionality reduction)
 seurat_obj_merged_joined <- RunPCA(seurat_obj_merged_joined)
+
+# save data
+# save(seurat_obj_merged_joined, file = "/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_pca.RData")
+
+# load in saved data
+load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_pca.RData")
+
 
 # Plots stored in pdf format in /figures/explore_seurat/...
 
@@ -57,10 +84,43 @@ seurat_obj_merged_joined <- RunPCA(seurat_obj_merged_joined)
 #   labs(title = "PCA plot") +
 #   theme(plot.title = element_text(hjust=0.5))
 # dev.off()
+# option to color bypatient: group by
+
+png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-2_plot_patient_legend.png",
+    width = 2000,
+    height = 2000,
+    res = 300,
+    type = "cairo")
+DimPlot(seurat_obj_merged_joined,
+        dims = c(1,2),
+        reduction = "pca",
+        group.by = "patient") +
+  # NoLegend() +
+  labs(title = "PCA plot 1-2") +
+  theme(plot.title = element_text(hjust=0.5),
+        legend.position = "bottom")
+dev.off()
+
+png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-27_plot_patient.png",
+    width = 2000,
+    height = 2000,
+    res = 300,
+    type = "cairo")
+DimPlot(seurat_obj_merged_joined,
+        dims = c(1,27),
+        reduction = "pca",
+        group.by = "patient") +
+  # NoLegend() +
+  labs(title = "PCA plot 1-27") +
+  theme(plot.title = element_text(hjust=0.5),
+        legend.position = "bottom")
+dev.off()
+
 
 # Create elbowplot to see what PC capture most data variance
-pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_elbowplot.pdf")
-ElbowPlot(seurat_obj_merged_joined)+
+# ?ElbowPlot
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_elbowplot_40dim.pdf", width = 10, height = 6)
+ElbowPlot(seurat_obj_merged_joined, ndims = 40)+
   geom_line(aes(x=dims,y=y_data)) +
   labs(title = "Elbow plot of PCA variance") +
   theme(plot.title = element_text(hjust=0.5))
@@ -72,11 +132,13 @@ dev.off()
 # dev.off()
 
 # Draws a heatmap focusing on a principal component (displays top 15 genes with highest and lowest pc scores )
-pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_heatmap1-15.pdf", width=10, height=10)
-DimHeatmap(seurat_obj_merged_joined, dims = 1:9, cells = 5000, balanced = TRUE, reduction = "pca")
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_heatmap1-15.pdf", width=30, height=30)
+DimHeatmap(seurat_obj_merged_joined,
+           dims = 1:15,
+           cells = 5000,
+           balanced = TRUE,
+           reduction = "pca")
 dev.off()
-
-# -------------------------- build in save method here -----------------
 
 #######################################
 # Integration
@@ -91,10 +153,13 @@ dev.off()
 #######################################
 
 # Find nearest neighbors, within pca dims 1:30 
-seurat_obj_merged_joined <- FindNeighbors(seurat_obj_merged_joined, dims = 1:30)
+# seurat_obj_merged_joined <- FindNeighbors(seurat_obj_merged_joined, dims = 1:30)
+seurat_obj_merged_joined <- FindNeighbors(seurat_obj_merged_joined, dims = 1:27)
 
 # Find clusters
-seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined, resolution = 0.5)
+# seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined, resolution = 0.5)
+seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined, resolution = 0.6)
+
 
 # Check what cluster the first 5 cells belong to
 # head(Idents(seurat_obj_merged_joined), 5)
@@ -104,7 +169,9 @@ seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined, resolution = 
 #######################################
 
 # Run umap, with PCA dimensions 1:30
-seurat_obj_merged_joined <- RunUMAP(seurat_obj_merged_joined, dims = 1:30)
+# seurat_obj_merged_joined <- RunUMAP(seurat_obj_merged_joined, dims = 1:30)
+seurat_obj_merged_joined <- RunUMAP(seurat_obj_merged_joined, dims = 1:27)
+
 
 # Visualize clusters (to pdf file)
 pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_v1.pdf", width=12, height=9)
@@ -119,16 +186,160 @@ dev.off()
 #   NoLegend()
 
 # Visualize clusters (to pdf file) grouped by cluster, with label and higher resolution
-pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_v2.pdf", width=12, height=9)
-DimPlot(seurat_obj_merged_joined, reduction = "umap", group.by = "seurat_clusters", label = TRUE, raster.dpi = c(900,900)) + 
-  NoLegend()
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_1-27dim_06res_cluster.pdf",
+    width=12,
+    height=9)
+DimPlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        group.by = "seurat_clusters",
+        label = TRUE,
+        raster.dpi = c(600,600)) + 
+  NoLegend() +
+  labs(title = "RNA - cluster (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5)
+  )
+dev.off()
+
+## BY PATIENT
+
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_1-27dim_06res_patient.pdf",
+    width=12,
+    height=9)
+DimPlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        group.by = "patient",
+        label = FALSE,
+        raster.dpi = c(600,600)) +
+  labs(title = "RNA - patient (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "bottom"
+        )
+dev.off()
+
+## BY SAMPLE
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_1-27dim_06res_sample.pdf",
+    width=18,
+    height=9)
+DimPlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        group.by = "orig.ident",
+        label = FALSE,
+        raster.dpi = c(900,900)) +
+  labs(title = "RNA - sample (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "right"
+  )
+dev.off()
+
+## BY ncount
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_1-27dim_06res_ncount.pdf",
+    width=12,
+    height=9)
+FeaturePlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        features = "nCount_RNA") +
+  # NoLegend() +
+  labs(title = "RNA - nCount (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5)
+  )
+dev.off()
+
+## BY nfeature
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_1-27dim_06res_nfeature.pdf",
+    width=12,
+    height=9)
+FeaturePlot(seurat_obj_merged_joined,
+            reduction = "umap",
+            features = "nFeature_RNA") +
+  # NoLegend() +
+  labs(title = "RNA - nFeature (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5)
+  )
+dev.off()
+
+## BY percentmt
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_1-27dim_06res_percentmt.pdf",
+    width=12,
+    height=9)
+FeaturePlot(seurat_obj_merged_joined,
+            reduction = "umap",
+            features = "percent.mt") +
+  # NoLegend() +
+  labs(title = "RNA - percent.mt (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5)
+  )
 dev.off()
 
 
 #Cluster composition per sample
 table(seurat_obj_merged_joined$seurat_clusters, seurat_obj_merged_joined$orig.ident)
 
-# -------------------------- build in save method here -----------------
+# save data
+# save(seurat_obj_merged_joined, file = "/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNA_umap.RData")
+
+# load in saved data
+load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNA_umap.RData")
+
+
+#######################################
+# CellCycleScoring
+#######################################
+
+seurat_obj_merged_joined <- CellCycleScoring(seurat_obj_merged_joined, s.features = cc.genes.updated.2019$s.genes, g2m.features = cc.genes.updated.2019$g2m.genes)
+
+## BY PHASE
+
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_CCS_umap_phases.pdf",
+    width = 12, height = 9)
+DimPlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        group.by = "Phase") +
+  labs(title = "RNA - phases (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "bottom"
+  )
+dev.off()
+
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_CCS_umap_split_phases.pdf",
+    width = 15, height = 9)
+DimPlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        split.by = "Phase",
+        group.by = "Phase") +
+  labs(title = "RNA - phases (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "bottom"
+  )
+dev.off()
+
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_CCS_umap_phase-cluster.pdf",
+    width = 15, height = 9)
+DimPlot(seurat_obj_merged_joined,
+        reduction = "umap",
+        split.by = "Phase",
+        group.by = "seurat_clusters",
+        label = TRUE) +
+  labs(title = "RNA - phases + clusters (PCA dims = 1:27, res = 0.6)") +
+  theme(
+    plot.title = element_text(hjust=0.5),
+    legend.position = "none"
+  )
+dev.off()
+
+# pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_CCS_vln_scores.pdf",
+#     width = 15, height = 9)
+# VlnPlot(seurat_obj_merged_joined,
+#         features = c("S.Score", "G2M.Score"),
+#         group.by = "orig.ident")
+# dev.off()
 
 #######################################
 # Markers
@@ -148,14 +359,34 @@ markers <- list(
   Club = c("SCGB1A1", "SCGB3A1", "KRT7", "PIGR"),
   Mast = c("CPA3", "TPSAB1", "TPSB2", "KIT", "MS4A2"))
 
-# visualize marker expression on umap
-pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_luminal.pdf", width=12, height=9)
-FeaturePlot(
-  seurat_obj_merged_joined,
-  features = markers$Luminal
-)
+# # visualize marker expression on umap
+# pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_umap_luminal.pdf", width=12, height=9)
+# FeaturePlot(
+#   seurat_obj_merged_joined,
+#   features = markers$Luminal
+# )
+# dev.off()
+
+# use dotplot to show expression
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_markers_dotplot.pdf", width = 22, height = 10)
+DotPlot(seurat_obj_merged_joined, features = markers) + 
+  labs(title = "DotPlot - markers") +
+  theme(plot.title = element_text(hjust=0.5),
+        legend.position = "right")+
+  RotatedAxis()
 dev.off()
 
-#find markers
-markers2 <- FindAllMarkers(seurat_obj_merged_joined)
+# change colors and y-axis
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_markers_dotplot_cluster.pdf", width = 22, height = 10)
+DotPlot(seurat_obj_merged_joined,
+        features = markers,
+        group.by = "seurat_clusters") + 
+  scale_color_viridis_b() +
+  labs(title = "Marker expression - clusters ") +
+  theme(plot.title = element_text(hjust=0.5))+
+  RotatedAxis()
+dev.off()
+
+# find markers
+# markers2 <- FindAllMarkers(seurat_obj_merged_joined)
 
