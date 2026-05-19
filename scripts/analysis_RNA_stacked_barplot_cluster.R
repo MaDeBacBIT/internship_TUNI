@@ -27,6 +27,8 @@ set.seed(1234)
 #######################################
 # store folder location
 base_dir <- "/scratch/svc_td_compbio/users/MaDeBa"
+# subdir umap
+# subdir_umap <- "/figures/rna_umap_harmony_gb_pat"
 
 # load(paste0(base_dir,"/data/seurat_objects_list_RNA_umap.RData"))
 
@@ -41,7 +43,9 @@ metadata <- seurat_obj_merged_joined@meta.data
 metadata$nCells_RNA <- 1
 
 # create pdf
-pdf(file = paste0(base_dir,"/figures/explore_seurat/rna_stackbp_patient.pdf"), width = 10, height = 12)
+# pdf(file = paste0(base_dir,"/figures/explore_seurat/rna_stackbp_patient_harmony.pdf"), width = 10, height = 12)
+# store the pdf in the same location as umap visualizations
+pdf(file = paste0(base_dir,subdir_umap,"/rna_stackbp_patient_harmony.pdf"), width = 10, height = 12)
 
 # make stacked barplot for the different clusters, with bars filled with the amount of cells and colored by patient
 ggplot(metadata,
@@ -62,7 +66,7 @@ ggplot(metadata,
 dev.off()
 
 # same as above, but for sample
-pdf(file = paste0(base_dir,"/figures/explore_seurat/rna_stackbp_sample.pdf"), width = 10, height = 12)
+pdf(file = paste0(base_dir,subdir_umap,"/rna_stackbp_sample_harmony.pdf"), width = 10, height = 12)
 ggplot(metadata,
        aes(fill=orig.ident,y=nCells_RNA,x=seurat_clusters)) +
   geom_bar(position="fill", stat="identity") + theme_classic() +  
@@ -74,3 +78,4 @@ ggplot(metadata,
         legend.position = "bottom")+
   guides(fill = guide_legend(nrow = 12, byrow = FALSE))
 dev.off()
+
