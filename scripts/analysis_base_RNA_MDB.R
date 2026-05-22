@@ -25,32 +25,31 @@ library(viridis)
 set.seed(1234)
 
 #######################################
-# load in the preprocessed data
+# load in or create the preprocessed data
 #######################################
 
 # store location where the data, figures and scripts are located, without / on the end
 base_dir <- "/scratch/svc_td_compbio/users/MaDeBa"
 
+# preprocessing as layers cannot be joined in advance
+# load in non pca data
+load(paste0(base_dir, "/data/seurat_objects_list_RNAonly_filtered_merged.RData"))
 
-# load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined.RData")
+# Normalize per-sample (operates on each counts.SAMPLE layer separately)
+seurat_obj_merged <- NormalizeData(seurat_obj_merged)
 
-# have a look at the seurat object
-seurat_obj_merged_joined
+# Find variable features per-sample
+seurat_obj_merged <- FindVariableFeatures(seurat_obj_merged)
 
-# ?save()
+# Scale and continue
+seurat_obj_merged <- ScaleData(seurat_obj_merged)
 
-# save the seurat object to a different file and then continue to use the new file
-# save(seurat_obj_merged_joined, file ="/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_copy_analysis.RData")
-
-# load in the copy of preprocessed data, this will be overwritten further in the analysis
-load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_copy_analysis.RData")
+# calculate percent mt and subset to have it lower than 10
+seurat_obj_merged[["percent.mt"]] <- PercentageFeatureSet(seurat_obj_merged, pattern = "^MT-")
+seurat_obj_merged <- subset(seurat_obj_merged, subset = percent.mt < 10)
 
 # create patient column with patient id, extracted from orig.ident
-# seurat_obj_merged_joined@meta.data$patient <- sub(".*-(Patient[0-9]+).*", "\\1", seurat_obj_merged_joined@meta.data$orig.ident)
-
-#######################################
-# QC => scripts/qc_RNA_MDB.R
-#######################################
+seurat_obj_merged@meta.data$patient <- sub(".*-(Patient[0-9]+).*", "\\1", seurat_obj_merged@meta.data$orig.ident)
 
 #######################################
 # PCA
@@ -58,17 +57,15 @@ load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filt
 
 # ?RunPCA
 # Check size of seurat object
-# object.size(seurat_obj_merged_joined)
+# object.size(seurat_obj_merged)
 
 # Run PCA (linear dimensionality reduction)
-seurat_obj_merged_joined <- RunPCA(seurat_obj_merged_joined)
+seurat_obj_merged <- RunPCA(seurat_obj_merged)
 
-# save seurat object after pca
-# save(seurat_obj_merged_joined, file = "/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_pca.RData")
-
-# load in saved data
-load("/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNAonly_filtered_merged_normalized_HVG_joined_pca.RData")
-
+# Save and join 
+pca_file <- paste0(base_dir,"/data/seurat_objects_list_RNA_pca_nojoin.RData")
+save(seurat_obj_merged, file = pca_file)
+load(pca_file)
 
 # Plots stored in pdf format in /figures/explore_seurat/...
 
