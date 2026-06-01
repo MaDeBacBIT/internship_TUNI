@@ -5,7 +5,6 @@
 # Packages
 #######################################
 # Check if the required packages are installed - if not, install them
-
 req_packages <- c("Seurat","ggplot2","openxlsx")
 
 my_packages <- installed.packages()[, "Package"] #list installed packages
@@ -14,12 +13,16 @@ for (pkg in req_packages) {
     install.packages(pkg)
   } 
 }
-# print("All packages installed.")
 
+# load the different packages
 library(Seurat)
 library(ggplot2)
 library(openxlsx)
+
+# set a seed
 set.seed(1234)
+
+print("All packages loaded and installed.")
 
 #######################################
 # QC
@@ -28,19 +31,11 @@ set.seed(1234)
 # store folder location
 base_dir <- "/scratch/svc_td_compbio/users/MaDeBa"
 
-# load(paste0(base_dir,"/data/seurat_objects_list_RNA_umap.RData"))
+load(paste0(base_dir,"/data/seurat_objects_list_RNA_umap.RData"))
 
 # only if not done in advance
 # create patient column with patient id, extracted from orig.ident
 # seurat_obj_merged_joined@meta.data$patient <- sub(".*-(Patient[0-9]+).*", "\\1", seurat_obj_merged_joined@meta.data$orig.ident)
-
-# explore metadata
-# dim(seurat_obj_merged_joined@meta.data)
-# colnames(metadata)
-# head(metadata)
-# 
-# str(metadata)
-# summary(metadata)
 
 # copy metadata to create new dataframe
 metadata <- seurat_obj_merged_joined@meta.data
@@ -59,7 +54,7 @@ qc_df_sample <- data.frame(
   nCells_RNA = NA
 )
 
-#prepare counter for to be able to store the data in the right row (patient/sample)
+# prepare counter for to be able to store the data in the right row (patient/sample)
 qc_row <- 1
 qc_metrics <- c("nCount_RNA","nFeature_RNA","percent.mt")
 
@@ -79,7 +74,6 @@ for (pt in patient_un) {
 }
 
 # loop that goes over each sample (sorted before) and calculates the different qc metrics based on metadata that is subset for each metric and sample
-
 qc_row <- 1
 for (smp in sample_un) {
   subset_mtd <- metadata[metadata$orig.ident == smp,]
@@ -95,14 +89,17 @@ for (smp in sample_un) {
   
   qc_row <- qc_row+1
 }
+
+# View the created dataframe
 # View(qc_df_sample)
 
+print("QC metrics calculated.")
 
 #######################################
 # Export
 #######################################
 # name file for exporting
-export_file <- "/figures/qc_df.xlsx"
+export_file <- "/figures/qc_metrics.xlsx"
 # create empty workbook
 wb <- createWorkbook()
 
@@ -115,3 +112,5 @@ writeData(wb, "sample", qc_df_sample)
 
 # save workbook to excel file (export file defined at beginning)
 saveWorkbook(wb, paste0(base_dir,export_file), overwrite = TRUE)
+
+print(paste0("Workbook saved to: ",base_dir,export_file))

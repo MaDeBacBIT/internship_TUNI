@@ -14,22 +14,27 @@ for (pkg in req_packages) {
     install.packages(pkg)
   } 
 }
-# print("All packages installed.")
-
+# load the different packages
 library(Seurat)
 library(ggplot2)
+
+# set a seed
 set.seed(1234)
 
-# required: clustering already done
+print("All packages loaded and installed.")
+
+###!!### required: clustering already done (script: "analysis_cluster_RNA_MDB.R")
 
 #######################################
 # Stacked barplot
 #######################################
 # store folder location
 base_dir <- "/scratch/svc_td_compbio/users/MaDeBa"
-# subdir umap
-# subdir_umap <- "/figures/rna_umap_harmony_gb_pat"
+# subdir umap (created when running clustering script, if needed can be changed here)
+# subdir_umap <- "/figures/rna_umap_harmony_gb_ident"
+integr_method <- "scVI"
 
+# load in data 
 # load(paste0(base_dir,"/data/seurat_objects_list_RNA_umap.RData"))
 
 # only if not done in advance (create patient column with patient id, extracted from orig.ident)
@@ -41,19 +46,22 @@ metadata <- seurat_obj_merged_joined@meta.data
 # new column, each cell counts as 1
 metadata$nCells_RNA <- 1
 
+# select what to group by for the different fill variables
 fill_var_all <- c("patient", "sample")
+
+# go over different fill options
 for (fill_var in fill_var_all) {
-  
   # store the pdf in the same location as umap visualizations and auto include var name
-  pdf_fileloc <- paste0(base_dir,subdir_umap,"/rna_stackbp_",fill_var,"_harmony.pdf")
+  pdf_fileloc <- paste0(base_dir,subdir_umap,"/rna_stackbp_",fill_var,"_",integr_method,".pdf")
   pdf(file = pdf_fileloc,
       width = 10, height = 12)
   
-  # make stacked barplot for the different clusters, with bars filled with the amount of cells and colored by patient
+  # make stacked barplot for the different clusters, with bars filled with the amount of cells and colored by sample
   if (fill_var == "sample") {
     p1 <- ggplot(metadata,
                  aes(fill=orig.ident,y=nCells_RNA,x=seurat_clusters))
   }
+  # make stacked barplot for the different clusters, with bars filled with the amount of cells and colored by patient
   if (fill_var == "patient") {
     p1 <- ggplot(metadata,
                  aes(fill=patient,y=nCells_RNA,x=seurat_clusters))
@@ -64,7 +72,7 @@ for (fill_var in fill_var_all) {
       # add theme
       theme_classic() + 
       # add custom labels for x, y and legend
-      labs(title = paste0("Stacked barplot - ",fill_var," - harmony - th4"),
+      labs(title = paste0("Stacked barplot - ",fill_var," - ", integr_method),
          x = "Seurat_clusters",
          y = "Proportion of cells",
          fill = fill_var) +
@@ -79,3 +87,6 @@ for (fill_var in fill_var_all) {
   # close pdf
   dev.off()
 }
+
+print(paste0("Stacked barplots created and saved to: ", base_dir,subdir_umap))
+

@@ -6,7 +6,7 @@
 #######################################
 # Check if the required packages are installed - if not, install them
 
-req_packages <- c("Seurat","ggplot2","harmony","openxlsx","viridis")
+req_packages <- c("Seurat","ggplot2")
 
 my_packages <- installed.packages()[, "Package"] #list installed packages
 for (pkg in req_packages) {
@@ -14,18 +14,17 @@ for (pkg in req_packages) {
     install.packages(pkg)
   } 
 }
-# print("All packages installed.")
-
+# load the different packages
 library(Seurat)
 library(ggplot2)
-library(harmony)
-library(readxl)
-library(openxlsx)
-library(viridis)
+
+# set a seed
 set.seed(1234)
 
+print("All packages loaded and installed.")
+
 #######################################
-# load in or create the preprocessed data
+# Load in / create preprocessed data
 #######################################
 
 # store location where the data, figures and scripts are located, without / on the end
@@ -69,15 +68,7 @@ load(pca_file)
 
 # Plots stored in pdf format in /figures/explore_seurat/...
 
-# Create scatter plot of PC1 and PC2 
-# pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-2_plot.pdf")
-# DimPlot(seurat_obj_merged_joined, reduction = "pca") + 
-#   NoLegend() + 
-#   labs(title = "PCA plot") +
-#   theme(plot.title = element_text(hjust=0.5))
-# dev.off()
-# option to color bypatient: group by
-
+# Create scatter plot of PC1 and PC2 (colored by patient)
 png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-2_plot_patient_legend.png",
     width = 2000,
     height = 2000,
@@ -93,6 +84,7 @@ DimPlot(seurat_obj_merged_joined,
         legend.position = "bottom")
 dev.off()
 
+# Create scatter plot of PC1 and PC27 (colored by patient)
 png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-27_plot_patient.png",
     width = 2000,
     height = 2000,
@@ -131,3 +123,5 @@ DimHeatmap(seurat_obj_merged_joined,
            balanced = TRUE,
            reduction = "pca")
 dev.off()
+
+print("Plots created and base script finished.")
