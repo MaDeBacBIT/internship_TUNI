@@ -66,15 +66,15 @@ pca_file <- paste0(base_dir,"/data/seurat_objects_list_RNA_pca_nojoin.RData")
 save(seurat_obj_merged, file = pca_file)
 load(pca_file)
 
-# Plots stored in pdf format in /figures/explore_seurat/...
+# Plots stored in pdf format in /figures/explore_seurat/explore_PCA/...
 
 # Create scatter plot of PC1 and PC2 (colored by patient)
-png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-2_plot_patient_legend.png",
+png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/explore_PCA/rna_PCA_PC1-2_plot_patient_legend.png",
     width = 2000,
     height = 2000,
     res = 300,
     type = "cairo")
-DimPlot(seurat_obj_merged_joined,
+DimPlot(seurat_obj_merged,
         dims = c(1,2),
         reduction = "pca",
         group.by = "patient") +
@@ -85,12 +85,12 @@ DimPlot(seurat_obj_merged_joined,
 dev.off()
 
 # Create scatter plot of PC1 and PC27 (colored by patient)
-png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_PC1-27_plot_patient.png",
+png(filename = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/explore_PCA/rna_PCA_PC1-27_plot_patient.png",
     width = 2000,
     height = 2000,
     res = 300,
     type = "cairo")
-DimPlot(seurat_obj_merged_joined,
+DimPlot(seurat_obj_merged,
         dims = c(1,27),
         reduction = "pca",
         group.by = "patient") +
@@ -103,21 +103,21 @@ dev.off()
 
 # Create elbowplot to see what PC capture most data variance
 # ?ElbowPlot
-pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_elbowplot_40dim.pdf", width = 10, height = 6)
-ElbowPlot(seurat_obj_merged_joined, ndims = 40)+
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/explore_PCA/rna_PCA_elbowplot_40dim.pdf", width = 10, height = 6)
+ElbowPlot(seurat_obj_merged, ndims = 40)+
   geom_line(aes(x=dims,y=y_data)) +
   labs(title = "Elbow plot of PCA variance") +
   theme(plot.title = element_text(hjust=0.5))
 dev.off()
 
 # Visualize top genes associated with reduction components
-# pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_vizdim1-2.pdf")
-# VizDimLoadings(seurat_obj_merged_joined, dims = 1:2, reduction = "pca")
+# pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/explore_PCA/rna_PCA_vizdim1-2.pdf")
+# VizDimLoadings(seurat_obj_merged, dims = 1:2, reduction = "pca")
 # dev.off()
 
 # Draws a heatmap focusing on a principal component (displays top 15 genes with highest and lowest pc scores )
-pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_heatmap1-15.pdf", width=30, height=30)
-DimHeatmap(seurat_obj_merged_joined,
+pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/explore_PCA/rna_PCA_heatmap1-15.pdf", width=30, height=30)
+DimHeatmap(seurat_obj_merged,
            dims = 1:15,
            cells = 5000,
            balanced = TRUE,

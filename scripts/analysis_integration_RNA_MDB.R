@@ -68,7 +68,7 @@ if (integr_method == "harmony") {
     orig.reduction = "pca",
     new.reduction = "harmony",
     group.by.vars = "orig.ident",
-    theta = 1,
+    # theta = 1,
     # lambda = NULL,
     verbose = TRUE
   )

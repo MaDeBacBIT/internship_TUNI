@@ -89,4 +89,3 @@ for (fill_var in fill_var_all) {
 }
 
 print(paste0("Stacked barplots created and saved to: ", base_dir,subdir_umap))
-

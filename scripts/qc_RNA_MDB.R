@@ -31,6 +31,7 @@ print("All packages loaded and installed.")
 # store folder location
 base_dir <- "/scratch/svc_td_compbio/users/MaDeBa"
 
+# load data (seurat object)
 load(paste0(base_dir,"/data/seurat_objects_list_RNA_umap.RData"))
 
 # only if not done in advance

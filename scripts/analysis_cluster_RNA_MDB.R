@@ -67,22 +67,17 @@ head(Layers(seurat_obj_merged_joined)) #after joining
 # Specify parameters
 #######################################
 
-# Elbow plot can be generated to check what dimensions to use (from PCA reduction)
-# pdf(file = "/scratch/svc_td_compbio/users/MaDeBa/figures/explore_seurat/rna_PCA_scvi_elbowplot_40dim_integr.pdf", width = 10, height = 6)
-# ElbowPlot(seurat_obj_merged, ndims = 40)+
-#   geom_line(aes(x=dims,y=y_data)) +
-#   labs(title = "Elbow plot of PCA variance") +
-#   theme(plot.title = element_text(hjust=0.5))
-# dev.off()
-
-# choose pca dimensions and resolution for clustering, mention harmony theta value for directory and title
+# choose pca dimensions and resolution for clustering
 dims_pca <- 1:27
 res_clust <- 0.6
 
-# only specified when harmony integration
-if (integr_method == "harmony"){
-  theta_harmony <- 1
-  }
+# With clustree, multiple resolutions can be tested, set to True if this is wanted and a clustree will be created
+clustree_check <- FALSE
+
+# only specified when harmony integration and if needed. // if wanted, it can also be added to the title of the plots by uncommenting the #labs parts
+# if (integr_method == "harmony"){
+#   theta_harmony <- 1
+#   }
 
 #######################################
 # Find neighbors + clusters
@@ -90,12 +85,37 @@ if (integr_method == "harmony"){
 # Find nearest neighbors, within pca dims
 seurat_obj_merged_joined <- FindNeighbors(seurat_obj_merged_joined, reduction = reduct_integr, dims = dims_pca)
 
-# Find clusters
-seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined, resolution = res_clust)
-?FindClusters
+# Find clusters # ?FindClusters, if a clustree is wanted, clustreecheck should be set to TRUE
+if (clustree_check){
+  
+  seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined,
+                                           # use multiple resolutions
+                                           resolution = c(0.1, 0.2,0.3,0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4),
+                                           # graph.name = "SCT_nn"
+                                           )
+} else {
+  # find clusters with set resolution, not for clustree
+  seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined,
+                                           resolution = res_clust)
+}
 
 # Check what cluster the first 5 cells belong to
 # head(Idents(seurat_obj_merged_joined))
+
+if (clustree_check) {
+  # install package if needed and load package and seuratobject with multiple resolution graphs
+  # install.packages("clustree")
+  library(clustree)
+  # load(paste0(base_dir,"/data/seurat_objects_list_RNA_clusters_louvain_clustree.RData"))
+  
+  # create clustree visualization plot in a pdf
+  pdf(file = paste0(base_dir,"/figures/explore_seurat/clustree_louvain_rna_",integr_method,".pdf"), height = 15, width = 20)
+  clustree(seurat_obj_merged_joined, prefix = "RNA_snn_res.")
+  dev.off()
+  
+  # check the different clustering results
+  # grep("res", colnames(seurat_obj_merged_joined@meta.data), value = TRUE)
+}
 
 #######################################
 # Create UMAP Reduction + CellCycleScoring
@@ -104,6 +124,7 @@ seurat_obj_merged_joined <- FindClusters(seurat_obj_merged_joined, resolution = 
 # Run umap reduction method, with PCA dimensions chosen
 seurat_obj_merged_joined <- RunUMAP(seurat_obj_merged_joined, reduction = reduct_integr, dims = dims_pca)
 
+# Run cellcyclescoring
 seurat_obj_merged_joined <- CellCycleScoring(seurat_obj_merged_joined, s.features = cc.genes.updated.2019$s.genes, g2m.features = cc.genes.updated.2019$g2m.genes)
 
 #######################################
@@ -111,9 +132,9 @@ seurat_obj_merged_joined <- CellCycleScoring(seurat_obj_merged_joined, s.feature
 #######################################
 
 # save data
-save(seurat_obj_merged_joined, file = "/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNA_cluster.RData")
+save(seurat_obj_merged_joined, file = "/scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNA_clusters_louvain_clustree.RData")
 
-print("Saved to: /scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNA_cluster.RData")
+print("Saved to: /scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_RNA_clusters_louvain_clustree.RData")
 #######################################
 # UMAP Visualizations
 #######################################
@@ -121,11 +142,11 @@ print("Saved to: /scratch/svc_td_compbio/users/MaDeBa/data/seurat_objects_list_R
 # check possible groupings on according to metadata
 # colnames(seurat_obj_merged_joined[[]])
 
-# create subdirectory (not ending on /)
+# create subdirectory based on integration(not ending on /)
 subdir_umap <- switch(integr_method,
   "none" = "/figures/rna_umap_pca",    
-  "harmony" = paste0("/figures/rna_umap_harmony_gb_ident_th",theta_harmony),
-  "scVI" = "/figures/rna_umap_scVI_gb_ident_dim27_res_test"
+  "harmony" = paste0("/figures/rna_umap_harmony_gb_ident_base"),
+  "scVI" = "/figures/rna_umap_scVI_gb_ident_dim27_res07"
 ) 
 
 if (!dir.exists(file.path(base_dir,subdir_umap))) {
@@ -177,8 +198,7 @@ for (grp in names(umap_groups)) {
   # apply styling and add title
   umap_p <- umap_p +
     labs(title = paste("RNA -", grp, title_end)) +
-    # labs(title = paste0("RNA - ",grp," ","Harmony (theta = ", theta_harmony,") (PCA dims = ",dims_pca,", res = ",res_clust,")")) +
-    
+    # labs(title = paste0("RNA - ",grp," ","(theta = ", theta_harmony,")",title_end)) +
     theme(
       plot.title = element_text(hjust=0.5)
       # ,legend.position = "bottom"
@@ -203,7 +223,7 @@ pdf(file = paste0(base_dir,subdir_umap,"/rna_CCS_umap_phases.pdf"),
 DimPlot(seurat_obj_merged_joined,
         reduction = "umap",
         group.by = "Phase") +
-  # labs(title = paste0("RNA - phases - Harmony (theta = ", theta_harmony,") (PCA dims = ",dims_pca,", res = ",res_clust,")")) +
+  # labs(title = paste0("RNA - ",grp," ","(theta = ", theta_harmony,")",title_end)) +
   labs(title = paste("RNA - phases", title_end)) +
   theme(
     plot.title = element_text(hjust=0.5),
@@ -292,7 +312,6 @@ DotPlot(seurat_obj_merged_joined,
         features = markers,
         group.by = "seurat_clusters") + 
   scale_color_viridis_b() +
-  # labs(title = paste0("Marker expression - clusters - Harmony (theta = ",theta_harmony,")"),
   labs(title = paste0("Marker expression - clusters - ", integr_method),
        x = "Cell type - gene markers",
        y = "Clusters") +
